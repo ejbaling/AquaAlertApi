@@ -1,0 +1,45 @@
+version: "3.8"
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" # Default RabbitMQ port
+      - "15672:15672" # Management Plugin port
+    environment:
+      RABBITMQ_DEFAULT_USER: your_username
+      RABBITMQ_DEFAULT_PASS: your_password
+    volumes:
+      - ./data:/var/lib/rabbitmq # Persist RabbitMQ data
+      - ./logs:/var/log/rabbitmq # Persist RabbitMQ logs
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "5000:5000"
+  #   environment:
+  #     - FLASK_APP=app.py
+  #     - FLASK_ENV=development
+  #     - FLASK_DEBUG=1
+  #   volumes:
+  #     - .:/app
+  #   depends_on:
+  #     - db
+  # aquaalertapi:
+  #   image: { image_name }
+  #   build:
+  #     context: .
+  #     dockerfile: { Dockerfile_path }
+  #   ports:
+  #     - "{host_port}:{container_port}"
+  #   volumes:
+  #     - ./{local_directory}:{container_directory}
+  # db:
+  #   image: postgres:13
+  #   environment:
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=postgres
+  #     - POSTGRES_DB=postgres
+  #   ports:
+  #     - "5432:5432"

@@ -44,3 +44,6 @@ msbuild.wrn
 
 # sonarqube
 .sonarqube
+
+# RabbitMQ
+rabbitmq/

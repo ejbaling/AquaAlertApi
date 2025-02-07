@@ -7,11 +7,11 @@ services:
       - "5672:5672" # Default RabbitMQ port
       - "15672:15672" # Management Plugin port
     environment:
-      RABBITMQ_DEFAULT_USER: your_username
-      RABBITMQ_DEFAULT_PASS: your_password
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
     volumes:
-      - ./data:/var/lib/rabbitmq # Persist RabbitMQ data
-      - ./logs:/var/log/rabbitmq # Persist RabbitMQ logs
+      - ./rabbitmg/data:/var/lib/rabbitmq # Persist RabbitMQ data
+      - ./rabbitmq/logs:/var/log/rabbitmq # Persist RabbitMQ logs
   # api:
   #   build:
   #     context: .

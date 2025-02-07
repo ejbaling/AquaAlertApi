@@ -10,7 +10,7 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     volumes:
-      - ./rabbitmg/data:/var/lib/rabbitmq # Persist RabbitMQ data
+      - ./rabbitmq/data:/var/lib/rabbitmq # Persist RabbitMQ data
       - ./rabbitmq/logs:/var/log/rabbitmq # Persist RabbitMQ logs
   # api:
   #   build:

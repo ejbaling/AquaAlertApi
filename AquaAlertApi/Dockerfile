@@ -11,7 +11,7 @@ RUN dotnet publish -o out
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:9.0@sha256:b4bea3a52a0a77317fa93c5bbdb076623f81e3e2f201078d89914da71318b5d8
 WORKDIR /App
-RUN groupadd --gid "$USER_GID" "$USERNAME" && useradd --uid "$USER_UID" --gid "$USER_GID" -m "$USERNAME"
+RUN groupadd --gid 1234 emmanuel && useradd --uid 1234 --gid 1234 -m emmanuel
 COPY --from=build /App/out .
-USER "$USERNAME"
+USER emmanuel
 ENTRYPOINT ["dotnet", "AquaAlertApi.dll"]

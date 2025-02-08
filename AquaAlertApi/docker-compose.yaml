@@ -13,6 +13,17 @@ services:
       - ./rabbitmq/data:/var/lib/rabbitmq # Persist RabbitMQ data
       - ./rabbitmq/logs:/var/log/rabbitmq # Persist RabbitMQ logs
     restart: always
+  aquaalertapi:
+    image: aquaalertapi
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080"
+    #volumes:
+    #  - .:/app
+    depends_on:
+      - rabbitmq
   # api:
   #   build:
   #     context: .

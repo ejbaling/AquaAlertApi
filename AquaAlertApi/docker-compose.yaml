@@ -12,6 +12,7 @@ services:
     volumes:
       - ./rabbitmq/data:/var/lib/rabbitmq # Persist RabbitMQ data
       - ./rabbitmq/logs:/var/log/rabbitmq # Persist RabbitMQ logs
+    restart: always
   # api:
   #   build:
   #     context: .

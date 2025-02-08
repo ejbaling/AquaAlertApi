@@ -15,6 +15,7 @@ services:
     restart: always
   aquaalertapi:
     image: aquaalertapi
+    container_name: aquaalertapi-image
     build:
       context: .
       dockerfile: Dockerfile

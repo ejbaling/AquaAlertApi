@@ -14,8 +14,8 @@ services:
       - ./rabbitmq/logs:/var/log/rabbitmq # Persist RabbitMQ logs
     restart: always
   aquaalertapi:
-    image: aquaalertapi
-    container_name: aquaalertapi-image
+    image: aquaalertapi-image
+    container_name: aquaalertapi
     build:
       context: .
       dockerfile: Dockerfile

@@ -25,6 +25,7 @@ services:
     #  - .:/app
     depends_on:
       - rabbitmq
+    restart: always
   # api:
   #   build:
   #     context: .

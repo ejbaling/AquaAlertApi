@@ -1,4 +1,6 @@
 using Serilog;
+using AquaAlertApi;
+using AquaAlertApi.Services.MqttClientService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,9 +45,12 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 
-app.Run();
+await app.RunAsync();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+namespace AquaAlertApi
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+    {
+        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    }
 }

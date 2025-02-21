@@ -26,7 +26,7 @@ namespace AquaAlertApi.Services.MqttClientService
 
         var mqttClient = mqttFactory.CreateMqttClient();
         var mqttClientOptions = new MqttClientOptionsBuilder()
-            .WithTcpServer("10.0.0.121", 1883)
+            .WithTcpServer("10.0.0.120", 1883)
             .WithClientId("AquaAlertApiClient")
             .WithCredentials("mqtt-user", "Ng7tov!KhVv3")
             .Build();

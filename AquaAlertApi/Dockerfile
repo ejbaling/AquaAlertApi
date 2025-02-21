@@ -3,8 +3,6 @@ WORKDIR /App
 
 # Copy everything
 # COPY . ./
-COPY ./bin ./
-COPY ./obj ./
 COPY ./Properties ./
 COPY ./Services ./
 COPY ./appsettings.json ./

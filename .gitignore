@@ -47,3 +47,7 @@ msbuild.wrn
 
 # RabbitMQ
 rabbitmq/
+
+# Logs
+*.log
+*.log.*

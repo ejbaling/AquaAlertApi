@@ -2,14 +2,17 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0@sha256:3fcf6f1e809c0553f9feb222369f58749af
 WORKDIR /App
 
 # Copy everything
-# COPY ./Properties ./
-# COPY ./Services ./
-# COPY ./appSettings.Development.json ./
-# COPY ./appSettings.json ./
-# COPY ./AquaAlertApi.csproj ./
-# COPY ./AquaAlertApi.http ./
-# COPY ./Program.cs ./
-COPY . ./
+# COPY . ./
+COPY ./bin ./
+COPY ./obj ./
+COPY ./Properties ./
+COPY ./Services ./
+COPY ./appSettings.json ./
+COPY ./AquaAlertApi.csproj ./
+COPY ./AquaAlertApi.http ./
+COPY ./Program.cs ./
+COPY ./AquaAlertApi.sln ./
+COPY ./README.md ./
 
 # Restore as distinct layers
 RUN dotnet restore

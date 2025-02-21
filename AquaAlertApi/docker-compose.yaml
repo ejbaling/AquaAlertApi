@@ -21,9 +21,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5000:8080"
-    dns:
-      - 8.8.8.8
-      - 8.8.8.4
     #volumes:
     #  - .:/app
     depends_on:

@@ -7,12 +7,10 @@ COPY ./bin ./
 COPY ./obj ./
 COPY ./Properties ./
 COPY ./Services ./
-COPY ./appSettings.json ./
+COPY ./appsettings.json ./
 COPY ./AquaAlertApi.csproj ./
 COPY ./AquaAlertApi.http ./
 COPY ./Program.cs ./
-COPY ./AquaAlertApi.sln ./
-COPY ./README.md ./
 
 # Restore as distinct layers
 RUN dotnet restore

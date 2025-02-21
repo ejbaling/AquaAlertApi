@@ -22,9 +22,7 @@ services:
     ports:
       - "5000:8080"
     volumes:
-      - ./logs1:/app
-      - ./logs2:/app/logs
-      - ./logs3:/logs
+      - .:/app
     depends_on:
       - rabbitmq
     restart: always

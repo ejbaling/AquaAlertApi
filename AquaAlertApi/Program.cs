@@ -14,7 +14,7 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .WriteTo.Console());
 
 // Register the MQTT client service
-builder.Services.AddHostedService<MqttClientService>();
+// builder.Services.AddHostedService<MqttClientService>();
 
 var app = builder.Build();
 

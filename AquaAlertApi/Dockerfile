@@ -20,5 +20,5 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0@sha256:b4bea3a52a0a77317fa93c5bbdb07662
 WORKDIR /app
 RUN groupadd --gid 1234 emmanuel && useradd --uid 1234 --gid 1234 -m emmanuel
 COPY --from=build /app/out .
-USER root
+USER emmanuel
 ENTRYPOINT ["dotnet", "AquaAlertApi.dll"]

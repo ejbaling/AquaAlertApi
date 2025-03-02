@@ -51,3 +51,6 @@ rabbitmq/
 # Logs
 *.log
 *.log.*
+
+# AquaAlertApi
+AquaAlertApi/appsettings.production.json

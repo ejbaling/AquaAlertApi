@@ -22,6 +22,8 @@ namespace AquaAlertApi.Services.MqttClientService
             var mqttClient = mqttFactory.CreateMqttClient();
             var brokerIp = _configuration["MqttBroker:Ip"];
             var brokerPort = _configuration["MqttBroker:Port"];
+            var username = _configuration["MqttBroker:Username"];
+            var password = _configuration["MqttBroker:Password"];
 
             if (string.IsNullOrWhiteSpace(brokerIp) || string.IsNullOrWhiteSpace(brokerPort))
             {
@@ -32,7 +34,7 @@ namespace AquaAlertApi.Services.MqttClientService
             var mqttClientOptions = new MqttClientOptionsBuilder()
                 .WithTcpServer(brokerIp, int.Parse(brokerPort))
                 .WithClientId("AquaAlertApiClient")
-                .WithCredentials("mqtt-user", "Ng7tov!KhVv3")
+                .WithCredentials(username, password)
                 .Build();
 
             mqttClient.ApplicationMessageReceivedAsync += e =>

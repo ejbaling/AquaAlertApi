@@ -5,7 +5,7 @@ WORKDIR /app
 # COPY . ./
 COPY ./Properties ./
 COPY ./Services ./
-COPY ./appsettings.production.json ./
+COPY ./appsettings.json ./
 COPY ./AquaAlertApi.csproj ./
 COPY ./AquaAlertApi.http ./
 COPY ./Program.cs ./

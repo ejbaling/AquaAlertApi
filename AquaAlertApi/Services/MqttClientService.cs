@@ -43,12 +43,32 @@ namespace AquaAlertApi.Services.MqttClientService
                 return Task.CompletedTask;
             };
 
-            await mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None);
-            _logger.LogInformation("The MQTT client is connected.");
+            _ = Task.Run(async () =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                         if (!await mqttClient.TryPingAsync())
+                         {
+                            await mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None);
+                            _logger.LogInformation("The MQTT client is connected.");
 
-            var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder().WithTopicFilter("/sh/water-distance").Build();
-            await mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
-            _logger.LogInformation("MQTT client subscribed to topic.");
+                            var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder().WithTopicFilter("/sh/water-distance").Build();
+                            await mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
+                            _logger.LogInformation("MQTT client subscribed to topic.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogCritical("Cannot connect to broker. Exception:", ex);
+                    }
+                    finally
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(5));
+                    }
+                }
+            });
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)

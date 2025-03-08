@@ -20,10 +20,11 @@ namespace AquaAlertApi.Services.MqttClientService
             var mqttFactory = new MqttClientFactory();
 
             var mqttClient = mqttFactory.CreateMqttClient();
-            var brokerIp = _configuration["MqttBroker:Ip"];
-            var brokerPort = _configuration["MqttBroker:Port"];
-            var username = _configuration["MqttBroker:Username"];
-            var password = _configuration["MqttBroker:Password"];
+            var brokerIp = _configuration["Mqtt:Broker:Ip"];
+            var brokerPort = _configuration["Mqtt:Broker:Port"];
+            var username = _configuration["Mqtt:Broker:Username"];
+            var password = _configuration["Mqtt:Broker:Password"];
+            var clientId = _configuration["Mqtt:Client:Id"];
 
             if (string.IsNullOrWhiteSpace(brokerIp) || string.IsNullOrWhiteSpace(brokerPort))
             {
@@ -33,42 +34,40 @@ namespace AquaAlertApi.Services.MqttClientService
 
             var mqttClientOptions = new MqttClientOptionsBuilder()
                 .WithTcpServer(brokerIp, int.Parse(brokerPort))
-                .WithClientId("AquaAlertApiClient")
+                .WithClientId(clientId)
                 .WithCredentials(username, password)
                 .Build();
 
             mqttClient.ApplicationMessageReceivedAsync += e =>
             {
-                _logger.LogInformation("Received mesage: {Parameter} cm", Encoding.UTF8.GetString(e.ApplicationMessage.Payload));
+                _logger.LogInformation("Received message: {Parameter} cm", Encoding.UTF8.GetString(e.ApplicationMessage.Payload));
                 return Task.CompletedTask;
             };
 
-            _ = Task.Run(async () =>
+            while (!cancellationToken.IsCancellationRequested)
             {
-                while (true)
+                try
                 {
-                    try
+                    if (!await mqttClient.TryPingAsync(cancellationToken))
                     {
-                         if (!await mqttClient.TryPingAsync())
-                         {
-                            await mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None);
-                            _logger.LogInformation("The MQTT client is connected.");
+                        await mqttClient.ConnectAsync(mqttClientOptions, cancellationToken);
+                        _logger.LogInformation("The MQTT client is connected.");
 
-                            var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder().WithTopicFilter("/sh/water-distance").Build();
-                            await mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
-                            _logger.LogInformation("MQTT client subscribed to topic.");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogCritical("Cannot connect to broker. Exception:", ex);
-                    }
-                    finally
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(5));
+                        var subscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder().WithTopicFilter("/sh/water-distance").Build();
+                        await mqttClient.SubscribeAsync(subscribeOptions, cancellationToken);
+                        _logger.LogInformation("MQTT client subscribed to topic.");
                     }
                 }
-            });
+                catch (Exception ex)
+                {
+                    _logger.LogCritical(ex, "An error occurred while connecting to the MQTT broker.");
+                }
+                finally
+                {
+                    if (!cancellationToken.IsCancellationRequested)
+                        await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                }
+            }
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
@@ -85,7 +84,7 @@ namespace AquaAlertApi.Services.MqttClientService
             // Send a clean disconnect to the server by calling _DisconnectAsync_. Without this the TCP connection
             // gets dropped and the server will handle this as a non clean disconnect (see MQTT spec for details).
             var mqttClientDisconnectOptions = mqttFactory.CreateClientDisconnectOptionsBuilder().Build();
-            await mqttClient.DisconnectAsync(mqttClientDisconnectOptions, CancellationToken.None);
+            await mqttClient.DisconnectAsync(mqttClientDisconnectOptions, cancellationToken);
 
             _logger.LogInformation("The MQTT client is disconnected.");
         }

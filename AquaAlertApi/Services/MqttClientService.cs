@@ -1,6 +1,7 @@
 
 using MQTTnet;
 using System.Text;
+using System.Text.Json;
 
 namespace AquaAlertApi.Services.MqttClientService
 {
@@ -40,7 +41,19 @@ namespace AquaAlertApi.Services.MqttClientService
 
             mqttClient.ApplicationMessageReceivedAsync += e =>
             {
-                _logger.LogInformation("Received message: {Parameter} cm", Encoding.UTF8.GetString(e.ApplicationMessage.Payload));
+                var payloadString = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
+
+                try
+                {
+                    // Deserialize the JSON string to a dynamic object
+                    var mqttMessage = JsonSerializer.Deserialize<MqttMessage>(payloadString);
+                    _logger.LogInformation($"Received message: Client Id: {mqttMessage?.ClientId}, Distance: {mqttMessage?.Distance}, Unit: {mqttMessage?.Unit}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "An error occurred while processing the received message.");
+                }
+
                 return Task.CompletedTask;
             };
 
@@ -88,5 +101,12 @@ namespace AquaAlertApi.Services.MqttClientService
 
             _logger.LogInformation("The MQTT client is disconnected.");
         }
+    }
+
+    public class MqttMessage
+    {
+        public string ClientId { get; set; }
+        public decimal Distance { get; set; }
+        public string Unit { get; set; }
     }
 }

@@ -1,6 +1,9 @@
 using Serilog;
 using AquaAlertApi;
 using AquaAlertApi.Services.MqttClientService;
+using MassTransit;
+using AquaAlertApi.Services;
+using AquaAlertApi.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +19,26 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 // Register the MQTT client service
 builder.Services.AddHostedService<MqttClientService>();
 
+// Register MassTransit with RabbitMQ
+builder.Services.AddMassTransit(x =>
+{
+    // Add all consumers in your assembly automatically
+    x.AddConsumer<RabbitMQConsumer>();
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host("localhost", "/", h =>
+        {
+            h.Username("guest");
+            h.Password("guest");
+        });
+
+        // Auto-configure endpoints for all consumers
+        cfg.ConfigureEndpoints(context);
+    });
+});
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -30,6 +53,19 @@ var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
+
+// Test endpoint to publish manually
+app.MapGet("/test", async (IPublishEndpoint publishEndpoint) =>
+{
+    await publishEndpoint.Publish(new MqttMessage
+    {
+        ClientId = "TestClient",
+        Distance = (decimal?)12.34,
+        Unit = "cm"
+    });
+
+    return "Published test message!";
+});
 
 app.MapGet("/weatherforecast", () =>
 {

@@ -2,6 +2,8 @@
 using MQTTnet;
 using System.Text;
 using System.Text.Json;
+using MassTransit;
+using AquaAlertApi.Contracts;
 
 namespace AquaAlertApi.Services.MqttClientService
 {
@@ -9,14 +11,25 @@ namespace AquaAlertApi.Services.MqttClientService
     {
         private readonly ILogger<MqttClientService> _logger;
         private readonly IConfiguration _configuration;
+        private readonly IPublishEndpoint _publishEndpoint;
+        private Task? _backgroundTask;
+        private CancellationTokenSource? _cts;
 
-        public MqttClientService(ILogger<MqttClientService> logger, IConfiguration configuration)
+        public MqttClientService(ILogger<MqttClientService> logger, IConfiguration configuration, IPublishEndpoint publishEndpoint)
         {
             _logger = logger;
             _configuration = configuration;
+            _publishEndpoint = publishEndpoint;
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync(CancellationToken cancellationToken)
+        {
+             _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _backgroundTask = Task.Run(() => RunAsync(_cts.Token), _cts.Token);
+            return Task.CompletedTask; // Return immediately so the web app can start
+        }
+
+        private async Task RunAsync(CancellationToken cancellationToken)
         {
             var mqttFactory = new MqttClientFactory();
 
@@ -39,7 +52,7 @@ namespace AquaAlertApi.Services.MqttClientService
                 .WithCredentials(username, password)
                 .Build();
 
-            mqttClient.ApplicationMessageReceivedAsync += e =>
+            mqttClient.ApplicationMessageReceivedAsync += async e =>
             {
                 var payloadString = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
 
@@ -47,14 +60,20 @@ namespace AquaAlertApi.Services.MqttClientService
                 {
                     // Deserialize the JSON string to a dynamic object
                     var mqttMessage = JsonSerializer.Deserialize<MqttMessage>(payloadString);
-                    _logger.LogInformation($"Received message: Client Id: {mqttMessage?.ClientId}, Distance: {mqttMessage?.Distance}, Unit: {mqttMessage?.Unit}");
+
+                    if (mqttMessage == null)
+                    {
+                        _logger.LogWarning("Received invalid MQTT message: {Payload}", payloadString);
+                        return;
+                    }
+
+                    await _publishEndpoint.Publish(mqttMessage);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "An error occurred while processing the received message.");
                 }
 
-                return Task.CompletedTask;
             };
 
             while (!cancellationToken.IsCancellationRequested)
@@ -101,12 +120,5 @@ namespace AquaAlertApi.Services.MqttClientService
 
             _logger.LogInformation("The MQTT client is disconnected.");
         }
-    }
-
-    public class MqttMessage
-    {
-        public string ClientId { get; set; }
-        public decimal Distance { get; set; }
-        public string Unit { get; set; }
     }
 }

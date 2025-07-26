@@ -4,6 +4,8 @@ using AquaAlertApi.Services.MqttClientService;
 using MassTransit;
 using AquaAlertApi.Services;
 using AquaAlertApi.Contracts;
+using AquaAlertApi.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +40,8 @@ builder.Services.AddMassTransit(x =>
     });
 });
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 
 var app = builder.Build();
 

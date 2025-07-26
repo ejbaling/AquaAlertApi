@@ -8,12 +8,15 @@ namespace AquaAlertApi.Services
     {
         private readonly ILogger<RabbitMQConsumer> _logger;
         private readonly AppDbContext _db;
+        private readonly IConfiguration _configuration;
         private static int _messageCount = 0;
-        private const int LogEveryNMessages = 60; // every 5 minutes if messages are sent every 5 seconds
+        private readonly int LogEveryNMessages = 60; // every 5 minutes if messages are sent every 5 seconds. This can be adjusted via configuration.
 
-        public RabbitMQConsumer(ILogger<RabbitMQConsumer> logger, AppDbContext db)
+        public RabbitMQConsumer(ILogger<RabbitMQConsumer> logger, IConfiguration configuration, AppDbContext db)
         {
             _logger = logger;
+            _configuration = configuration;
+            LogEveryNMessages = configuration.GetValue<int>("RabbitMQ:LogEveryNMessages", 60);
             _db = db;
         }
 

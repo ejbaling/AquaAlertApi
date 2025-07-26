@@ -6,6 +6,7 @@ WORKDIR /app
 COPY ./Properties ./
 COPY ./Services ./
 COPY ./Contracts ./
+COPY ./Data ./
 COPY ./appsettings.Production.json ./
 COPY ./AquaAlertApi.csproj ./
 COPY ./AquaAlertApi.http ./

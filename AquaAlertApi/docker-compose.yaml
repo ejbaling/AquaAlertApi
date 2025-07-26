@@ -1,4 +1,3 @@
-version: "3.8"
 services:
   rabbitmq:
     image: rabbitmq:3-management
@@ -13,47 +12,23 @@ services:
       - ./rabbitmq/data:/var/lib/rabbitmq # Persist RabbitMQ data
       - ./rabbitmq/logs:/var/log/rabbitmq # Persist RabbitMQ logs
     restart: always
-  # aquaalertapi:
-  #   image: aquaalertapi-image
-  #   container_name: aquaalertapi
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "5000:8080"
-  #   volumes:
-  #     - ./logs:/logs
-  #   depends_on:
-  #     - rabbitmq
-  #   restart: always
-  # api:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "5000:5000"
-  #   environment:
-  #     - FLASK_APP=app.py
-  #     - FLASK_ENV=development
-  #     - FLASK_DEBUG=1
-  #   volumes:
-  #     - .:/app
-  #   depends_on:
-  #     - db
-  # aquaalertapi:
-  #   image: { image_name }
-  #   build:
-  #     context: .
-  #     dockerfile: { Dockerfile_path }
-  #   ports:
-  #     - "{host_port}:{container_port}"
-  #   volumes:
-  #     - ./{local_directory}:{container_directory}
-  # db:
-  #   image: postgres:13
-  #   environment:
-  #     - POSTGRES_USER=postgres
-  #     - POSTGRES_PASSWORD=postgres
-  #     - POSTGRES_DB=postgres
-  #   ports:
-  #     - "5432:5432"
+    networks:
+      - aquaalert_network
+  aquaalertapi:
+    image: aquaalertapi-image
+    container_name: aquaalertapi
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080"
+    volumes:
+      - ./logs:/logs
+    depends_on:
+      - rabbitmq
+    restart: always
+    networks:
+      - aquaalert_network
+networks:
+  aquaalert_network:
+    driver: bridge

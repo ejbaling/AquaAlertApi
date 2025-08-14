@@ -43,6 +43,9 @@ builder.Services.AddMassTransit(x =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 
+// Add LaunchDarkly service as singleton
+builder.Services.AddSingleton<ILaunchDarklyService, LaunchDarklyService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

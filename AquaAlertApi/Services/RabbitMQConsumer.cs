@@ -17,7 +17,7 @@ namespace AquaAlertApi.Services
         public RabbitMQConsumer(ILogger<RabbitMQConsumer> logger,
         IConfiguration configuration,
         AppDbContext db,
-        LaunchDarklyService launchDarklyService)
+        ILaunchDarklyService launchDarklyService)
         {
             _logger = logger;
             _configuration = configuration;

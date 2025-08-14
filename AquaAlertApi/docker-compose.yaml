@@ -15,11 +15,12 @@ services:
     networks:
       - aquaalert_network
   aquaalertapi:
-    image: aquaalertapi-image
+    #image: aquaalertapi-image
+    image: emmanueljomer/aquaalertapi:latest
     container_name: aquaalertapi
-    build:
-      context: .
-      dockerfile: Dockerfile
+    #build:
+    #  context: .
+    # dockerfile: Dockerfile
     ports:
       - "5000:8080"
     volumes:

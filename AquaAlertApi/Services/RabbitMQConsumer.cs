@@ -31,14 +31,14 @@ namespace AquaAlertApi.Services
             var message = context.Message;
             _logger.LogInformation($"ClientId: {message.ClientId}, WaterLevel: {message.Distance}, Unit: {message.Unit}");
 
-            Interlocked.Increment(ref _messageCount);
 
             if ((_messageCount % LogEveryNMessages) == 0)
             {
                 var log = new WaterLevelLog
                 {
                     WaterLevelCm = message.Distance ?? 0,
-                    TankId = 3
+                    TankId = 3,
+                    ClientId = message.ClientId
                 };
 
                 await _db.WaterLevelLogs.AddAsync(log);
@@ -51,6 +51,8 @@ namespace AquaAlertApi.Services
 
                 Interlocked.Exchange(ref _messageCount, 0);
             }
+
+            Interlocked.Increment(ref _messageCount);
         }
         
         public void Dispose()

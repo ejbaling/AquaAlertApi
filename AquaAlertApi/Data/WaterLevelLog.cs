@@ -7,6 +7,8 @@ public partial class WaterLevelLog
 {
     public int Id { get; set; }
 
+    public string? ClientId { get; set; }
+
     public int TankId { get; set; }
 
     public decimal WaterLevelCm { get; set; }

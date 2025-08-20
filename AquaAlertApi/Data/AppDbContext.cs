@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using AquaAlertApi.Data.CMS;
 
 namespace AquaAlertApi.Data;
 
@@ -18,6 +19,15 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Tank> Tanks { get; set; }
 
     public virtual DbSet<WaterLevelLog> WaterLevelLogs { get; set; }
+
+    public virtual DbSet<Plan> Plans { get; set; }
+    public virtual DbSet<Feature> Features { get; set; }
+    public virtual DbSet<Company> Companies { get; set; }
+    public virtual DbSet<CompanyCohort> CompanyCohorts { get; set; }
+    public virtual DbSet<PlanFeature> PlanFeatures { get; set; }
+    public virtual DbSet<Cohort> Cohorts { get; set; }
+    public virtual DbSet<FeatureRollout> FeatureRollouts { get; set; }
+    public virtual DbSet<CompanyFeature> CompanyFeatures { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseNpgsql(_configuration.GetConnectionString("Postgres"));

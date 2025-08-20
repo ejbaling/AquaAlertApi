@@ -3,6 +3,7 @@ using System;
 using AquaAlertApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AquaAlertApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250820041947_AddCohortIdToFeatureRollout")]
+    partial class AddCohortIdToFeatureRollout
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -88,43 +91,6 @@ namespace AquaAlertApi.Migrations
                     b.HasIndex("CompanyId");
 
                     b.ToTable("CompanyCohorts");
-                });
-
-            modelBuilder.Entity("AquaAlertApi.Data.CMS.CompanyFeature", b =>
-                {
-                    b.Property<Guid>("CompanyFeatureId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("Enabled")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("FeatureId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Source")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("CompanyFeatureId");
-
-                    b.HasIndex("CompanyId");
-
-                    b.HasIndex("FeatureId");
-
-                    b.ToTable("CompanyFeatures");
                 });
 
             modelBuilder.Entity("AquaAlertApi.Data.CMS.Feature", b =>
@@ -371,25 +337,6 @@ namespace AquaAlertApi.Migrations
                     b.Navigation("Cohort");
 
                     b.Navigation("Company");
-                });
-
-            modelBuilder.Entity("AquaAlertApi.Data.CMS.CompanyFeature", b =>
-                {
-                    b.HasOne("AquaAlertApi.Data.CMS.Company", "Company")
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AquaAlertApi.Data.CMS.Feature", "Feature")
-                        .WithMany()
-                        .HasForeignKey("FeatureId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Company");
-
-                    b.Navigation("Feature");
                 });
 
             modelBuilder.Entity("AquaAlertApi.Data.CMS.FeatureRollout", b =>

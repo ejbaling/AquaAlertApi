@@ -43,6 +43,9 @@ builder.Services.AddMassTransit(x =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 
+// Add HttpClient factory for outbound HTTP calls (used to call Telegram Bot API)
+builder.Services.AddHttpClient();
+
 // Add LaunchDarkly service as singleton
 builder.Services.AddSingleton<ILaunchDarklyService, LaunchDarklyService>();
 

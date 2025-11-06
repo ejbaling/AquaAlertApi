@@ -67,8 +67,15 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("battery_voltage");
             entity.Property(e => e.LoggedAt)
                 .HasDefaultValueSql("now()")
-                .HasColumnType("timestamp without time zone")
+                .HasColumnType("timestamp with time zone")
                 .HasColumnName("logged_at");
+
+            // store local time without tz so we can save a Manila local DateTime
+            entity.Property(e => e.LoggedAtLocal)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("logged_at_local")
+                .ValueGeneratedNever();
+
             entity.Property(e => e.PercentageFull)
                 .HasPrecision(5, 2)
                 .HasColumnName("percentage_full");

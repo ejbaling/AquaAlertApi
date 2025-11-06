@@ -76,18 +76,22 @@ namespace AquaAlertApi.Services
 
             if ((_messageCount % LogEveryNMessages) == 0)
             {
+                var utcNow = DateTimeOffset.UtcNow;
+
+                var phZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila");
+                var manilaNow = TimeZoneInfo.ConvertTime(utcNow, phZone); // DateTimeOffset +08:00
+
                 var log = new WaterLevelLog
                 {
                     WaterLevelCm = message.Distance ?? 0,
                     TankId = 3,
-                    ClientId = message.ClientId
+                    ClientId = message.ClientId,
+                    LoggedAt = utcNow, // timestamptz UTC
+                    // store local as DateTime without offset
+                    LoggedAtLocal = DateTime.SpecifyKind(manilaNow.DateTime, DateTimeKind.Unspecified),
                 };
-
                 await _db.WaterLevelLogs.AddAsync(log);
-
-                var flagValue = _ldClient.BoolVariation("save-to-database-feature", false);
-                if (flagValue)
-                    await _db.SaveChangesAsync();
+                await _db.SaveChangesAsync();
 
                 _logger.LogInformation("Water level log created with ID: {Id}", log.Id);
 

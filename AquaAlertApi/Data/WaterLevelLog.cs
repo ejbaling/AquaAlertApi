@@ -23,7 +23,11 @@ public partial class WaterLevelLog
 
     public decimal? BatteryVoltage { get; set; }
 
-    public DateTime LoggedAt { get; set; }
+    // change to DateTimeOffset
+    public DateTimeOffset LoggedAt { get; set; }
+
+    // store local time as DateTime (no offset) for Asia/Manila
+    public DateTime? LoggedAtLocal { get; set; }
 
     public virtual Tank Tank { get; set; } = null!;
 

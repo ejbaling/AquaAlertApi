@@ -57,7 +57,7 @@ namespace AquaAlertApi.Services
             _telegramChatId = configuration.GetValue<string>("Telegram:ChatId");
 
             // Read alerting configuration
-            _alertDistanceThreshold = configuration.GetValue<decimal>("Alerts:DistanceThreshold", 100m);
+            _alertDistanceThreshold = configuration.GetValue<decimal>("Alerts:DistanceThreshold", 150m);
             var cooldownMinutes = configuration.GetValue<int>("Alerts:CooldownMinutes", 10);
             _alertCooldown = TimeSpan.FromMinutes(cooldownMinutes);
             _onlyOnCrossing = configuration.GetValue<bool>("Alerts:OnlyOnCrossing", true);
@@ -71,7 +71,12 @@ namespace AquaAlertApi.Services
         public async Task Consume(ConsumeContext<MqttMessage> context)
         {
             var message = context.Message;
-            _logger.LogInformation($"ClientId: {message.ClientId}, WaterLevel: {message.Distance}, Unit: {message.Unit}");
+            var fullLevel = 200m;
+            var sensorGap = 40m;
+            var distance = message.Distance ?? 0;
+            var waterLevel =  fullLevel - (distance - sensorGap);
+            _logger.LogInformation("ClientId: {ClientId}, WaterLevel: {WaterLevel:F2}, Unit: {Unit}",
+    message.ClientId ?? "<null>", waterLevel, message.Unit ?? "<null>");
 
 
             if ((_messageCount % LogEveryNMessages) == 0)
@@ -83,7 +88,7 @@ namespace AquaAlertApi.Services
 
                 var log = new WaterLevelLog
                 {
-                    WaterLevelCm = message.Distance ?? 0,
+                    WaterLevelCm = waterLevel,
                     TankId = 3,
                     ClientId = message.ClientId,
                     LoggedAt = utcNow, // timestamptz UTC

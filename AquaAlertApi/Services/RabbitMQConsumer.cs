@@ -21,7 +21,7 @@ namespace AquaAlertApi.Services
         private readonly string? _telegramBotToken;
         private readonly string? _telegramChatId;
         // Alerting configuration
-        private readonly decimal _alertDistanceThreshold;
+        private readonly decimal _alertLevelThreshold;
         private readonly TimeSpan _alertCooldown;
         private readonly bool _onlyOnCrossing;
     private readonly TimeSpan _stateRetention;
@@ -35,7 +35,7 @@ namespace AquaAlertApi.Services
         private sealed class ClientAlertState
         {
             public DateTime LastSentUtc;
-            public bool LastAbove;
+            public bool LastBelow;
             public DateTime LastSeenUtc;
         }
 
@@ -57,7 +57,7 @@ namespace AquaAlertApi.Services
             _telegramChatId = configuration.GetValue<string>("Telegram:ChatId");
 
             // Read alerting configuration
-            _alertDistanceThreshold = configuration.GetValue<decimal>("Alerts:DistanceThreshold", 150m);
+            _alertLevelThreshold = configuration.GetValue<decimal>("Alerts:LevelThreshold", 150m);
             var cooldownMinutes = configuration.GetValue<int>("Alerts:CooldownMinutes", 10);
             _alertCooldown = TimeSpan.FromMinutes(cooldownMinutes);
             _onlyOnCrossing = configuration.GetValue<bool>("Alerts:OnlyOnCrossing", true);
@@ -74,7 +74,8 @@ namespace AquaAlertApi.Services
             var fullLevel = 200m;
             var sensorGap = 40m;
             var distance = message.Distance ?? 0;
-            var waterLevel =  fullLevel - (distance - sensorGap);
+            distance = distance > sensorGap ? distance - sensorGap  : 0;
+            var waterLevel =  fullLevel - distance;
             _logger.LogInformation("ClientId: {ClientId}, WaterLevel: {WaterLevel:F2}, Unit: {Unit}",
     message.ClientId ?? "<null>", waterLevel, message.Unit ?? "<null>");
 
@@ -107,21 +108,21 @@ namespace AquaAlertApi.Services
             try
             {
                 var clientId = string.IsNullOrWhiteSpace(message.ClientId) ? "<unknown>" : message.ClientId!;
-                var currentAbove = message.Distance.HasValue && message.Distance.Value > _alertDistanceThreshold;
+                var currentBelow = waterLevel < _alertLevelThreshold;
 
                 var nowUtc = DateTime.UtcNow;
 
                 // Get or create per-client state
-                var state = _clientStates.GetOrAdd(clientId, _ => new ClientAlertState { LastSentUtc = DateTime.MinValue, LastAbove = false, LastSeenUtc = nowUtc });
+                var state = _clientStates.GetOrAdd(clientId, _ => new ClientAlertState { LastSentUtc = DateTime.MinValue, LastBelow = false, LastSeenUtc = nowUtc });
 
                 // Determine whether we should send:
-                // - If OnlyOnCrossing: send only when currentAbove == true and previous LastAbove == false
-                // - If not OnlyOnCrossing: send whenever currentAbove == true
-                var crossingCondition = !_onlyOnCrossing || (currentAbove && !state.LastAbove);
+                // - If OnlyOnCrossing: send only when currentBelow == true and previous LastBelow == false
+                // - If not OnlyOnCrossing: send whenever currentBelow == true
+                var crossingCondition = !_onlyOnCrossing || (currentBelow && !state.LastBelow);
 
                 var cooldownPassed = (nowUtc - state.LastSentUtc) >= _alertCooldown;
 
-                var shouldSend = currentAbove && crossingCondition && cooldownPassed;
+                var shouldSend = currentBelow && crossingCondition && cooldownPassed;
 
                 if (shouldSend)
                 {
@@ -131,7 +132,7 @@ namespace AquaAlertApi.Services
                     }
                     else
                     {
-                        var text = $"⚠️ Water level alert for client {clientId}: distance = {message.Distance} {message.Unit ?? ""} (>{_alertDistanceThreshold})";
+                        var text = $"⚠️ Water level alert for client {clientId}: Water Level = {waterLevel} {message.Unit ?? ""} ( < {_alertLevelThreshold})";
                         var payload = new { chat_id = _telegramChatId, text };
                         var json = JsonSerializer.Serialize(payload);
                         using var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -144,15 +145,15 @@ namespace AquaAlertApi.Services
                         }
                         else
                         {
-                            _logger.LogInformation("Telegram alert sent for client {ClientId} (distance {Distance})", clientId, message.Distance);
+                            _logger.LogInformation("Telegram alert sent for client {ClientId} (Water Level {WaterLevel})", clientId, waterLevel);
                             // Update last sent time
                             state.LastSentUtc = nowUtc;
                         }
                     }
                 }
 
-                // Always update LastAbove and LastSeenUtc so crossing detection and retention work next time
-                state.LastAbove = currentAbove;
+                // Always update LastBelow and LastSeenUtc so crossing detection and retention work next time
+                state.LastBelow = currentBelow;
                 state.LastSeenUtc = nowUtc;
 
                 // Periodic cleanup to avoid unbounded growth of the dictionary. Run once every _cleanupEveryNMessages processed.

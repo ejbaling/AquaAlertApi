@@ -72,7 +72,7 @@ namespace AquaAlertApi.Services
         {
             var message = context.Message;
             var fullLevel = 200m;
-            var sensorGap = 40m;
+            var sensorGap = 0m; // set to 0 temporarily, assuming the sensor is the full level.
             var distance = message.Distance ?? 0;
             distance = distance > sensorGap ? distance - sensorGap  : 0;
             var waterLevel =  fullLevel - distance;

@@ -162,7 +162,7 @@ namespace AquaAlertApi.Services
                         }
                         else
                         {
-                            text = $"✅ Tank refilled for client {clientId}: Water Level = {waterLevel} {message.Unit ?? ""} (≥ {_refillThreshold})";
+                            text = $"✅ {clientId}: Water Level = {waterLevel} {message.Unit ?? ""} (≥ {_refillThreshold})";
                         }
                         var payload = new { chat_id = _telegramChatId, text };
                         var json = JsonSerializer.Serialize(payload);

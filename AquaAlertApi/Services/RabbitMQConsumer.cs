@@ -24,6 +24,7 @@ namespace AquaAlertApi.Services
         private readonly decimal _alertLevelThreshold;
         private readonly decimal _overflowThreshold;
         private readonly decimal _refillThreshold;
+        private readonly TimeSpan _refillAlertCooldown;
         private readonly TimeSpan _alertCooldown;
         private readonly bool _onlyOnCrossing;
     private readonly TimeSpan _stateRetention;
@@ -40,6 +41,7 @@ namespace AquaAlertApi.Services
             public bool LastBelow;
             public bool LastOverflow;
             public bool LastRefilled;
+            public DateTime LastRefillSentUtc;
             public DateTime LastSeenUtc;
         }
 
@@ -64,6 +66,8 @@ namespace AquaAlertApi.Services
             _alertLevelThreshold = configuration.GetValue<decimal>("Alerts:LevelThreshold", 150m);
             _overflowThreshold = configuration.GetValue<decimal>("Alerts:OverflowThreshold", 160m);
             _refillThreshold = configuration.GetValue<decimal>("Alerts:RefillThreshold", 155m);
+            var refillCooldownHours = configuration.GetValue<int>("Alerts:RefillCooldownHours", 12);
+            _refillAlertCooldown = TimeSpan.FromHours(refillCooldownHours);
             var cooldownMinutes = configuration.GetValue<int>("Alerts:CooldownMinutes", 10);
             _alertCooldown = TimeSpan.FromMinutes(cooldownMinutes);
             _onlyOnCrossing = configuration.GetValue<bool>("Alerts:OnlyOnCrossing", true);
@@ -123,7 +127,7 @@ namespace AquaAlertApi.Services
                 var nowUtc = DateTime.UtcNow;
 
                 // Get or create per-client state
-                var state = _clientStates.GetOrAdd(clientId, _ => new ClientAlertState { LastSentUtc = DateTime.MinValue, LastBelow = false, LastOverflow = false, LastRefilled = false, LastSeenUtc = nowUtc });
+                var state = _clientStates.GetOrAdd(clientId, _ => new ClientAlertState { LastSentUtc = DateTime.MinValue, LastBelow = false, LastOverflow = false, LastRefilled = false, LastRefillSentUtc = DateTime.MinValue, LastSeenUtc = nowUtc });
 
                 // Determine whether we should send low-level or overflow alerts.
                 var crossingConditionLow = !_onlyOnCrossing || (currentBelow && !state.LastBelow);
@@ -132,9 +136,12 @@ namespace AquaAlertApi.Services
 
                 var cooldownPassed = (nowUtc - state.LastSentUtc) >= _alertCooldown;
 
+                // Only allow a refill notification if the last recorded "refill sent" time was at least the configured window ago.
+                var refillCooldownPassed = (nowUtc - state.LastRefillSentUtc) >= _refillAlertCooldown;
+
                 var shouldSendLow = currentBelow && crossingConditionLow && cooldownPassed;
                 var shouldSendOverflow = currentOverflow && crossingConditionOverflow && cooldownPassed;
-                var shouldSendRefill = currentRefilled && crossingConditionRefill && cooldownPassed;
+                var shouldSendRefill = currentRefilled && crossingConditionRefill && cooldownPassed && refillCooldownPassed;
 
                 if (shouldSendLow || shouldSendOverflow || shouldSendRefill)
                 {
@@ -172,6 +179,8 @@ namespace AquaAlertApi.Services
                             _logger.LogInformation("Telegram alert sent for client {ClientId} (Water Level {WaterLevel})", clientId, waterLevel);
                             // Update last sent time
                             state.LastSentUtc = nowUtc;
+                            if (shouldSendRefill)
+                                state.LastRefillSentUtc = nowUtc;
                         }
                     }
                 }

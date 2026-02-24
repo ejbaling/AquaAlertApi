@@ -22,6 +22,8 @@ namespace AquaAlertApi.Services
         private readonly string? _telegramChatId;
         // Alerting configuration
         private readonly decimal _alertLevelThreshold;
+        private readonly decimal _overflowThreshold;
+        private readonly decimal _refillThreshold;
         private readonly TimeSpan _alertCooldown;
         private readonly bool _onlyOnCrossing;
     private readonly TimeSpan _stateRetention;
@@ -36,6 +38,8 @@ namespace AquaAlertApi.Services
         {
             public DateTime LastSentUtc;
             public bool LastBelow;
+            public bool LastOverflow;
+            public bool LastRefilled;
             public DateTime LastSeenUtc;
         }
 
@@ -58,6 +62,8 @@ namespace AquaAlertApi.Services
 
             // Read alerting configuration
             _alertLevelThreshold = configuration.GetValue<decimal>("Alerts:LevelThreshold", 150m);
+            _overflowThreshold = configuration.GetValue<decimal>("Alerts:OverflowThreshold", 160m);
+            _refillThreshold = configuration.GetValue<decimal>("Alerts:RefillThreshold", 155m);
             var cooldownMinutes = configuration.GetValue<int>("Alerts:CooldownMinutes", 10);
             _alertCooldown = TimeSpan.FromMinutes(cooldownMinutes);
             _onlyOnCrossing = configuration.GetValue<bool>("Alerts:OnlyOnCrossing", true);
@@ -71,11 +77,13 @@ namespace AquaAlertApi.Services
         public async Task Consume(ConsumeContext<MqttMessage> context)
         {
             var message = context.Message;
-            var fullLevel = 200m;
+            var sensorHeight = 200m;
+            // An overflow condition is when the measured water level exceeds the configured overflow threshold.
+            // This also handles sensors that might be submerged and report very low distances.
             var sensorGap = 0m; // set to 0 temporarily, assuming the sensor is the full level.
             var distance = message.Distance ?? 0;
             distance = distance > sensorGap ? distance - sensorGap  : 0;
-            var waterLevel =  fullLevel - distance;
+            var waterLevel =  sensorHeight - distance;
             _logger.LogInformation("ClientId: {ClientId}, WaterLevel: {WaterLevel:F2}, Unit: {Unit}",
     message.ClientId ?? "<null>", waterLevel, message.Unit ?? "<null>");
 
@@ -109,22 +117,26 @@ namespace AquaAlertApi.Services
             {
                 var clientId = string.IsNullOrWhiteSpace(message.ClientId) ? "<unknown>" : message.ClientId!;
                 var currentBelow = waterLevel < _alertLevelThreshold;
+                var currentOverflow = waterLevel > _overflowThreshold;
+                var currentRefilled = waterLevel >= _refillThreshold;
 
                 var nowUtc = DateTime.UtcNow;
 
                 // Get or create per-client state
-                var state = _clientStates.GetOrAdd(clientId, _ => new ClientAlertState { LastSentUtc = DateTime.MinValue, LastBelow = false, LastSeenUtc = nowUtc });
+                var state = _clientStates.GetOrAdd(clientId, _ => new ClientAlertState { LastSentUtc = DateTime.MinValue, LastBelow = false, LastOverflow = false, LastRefilled = false, LastSeenUtc = nowUtc });
 
-                // Determine whether we should send:
-                // - If OnlyOnCrossing: send only when currentBelow == true and previous LastBelow == false
-                // - If not OnlyOnCrossing: send whenever currentBelow == true
-                var crossingCondition = !_onlyOnCrossing || (currentBelow && !state.LastBelow);
+                // Determine whether we should send low-level or overflow alerts.
+                var crossingConditionLow = !_onlyOnCrossing || (currentBelow && !state.LastBelow);
+                var crossingConditionOverflow = !_onlyOnCrossing || (currentOverflow && !state.LastOverflow);
+                var crossingConditionRefill = !_onlyOnCrossing || (currentRefilled && !state.LastRefilled);
 
                 var cooldownPassed = (nowUtc - state.LastSentUtc) >= _alertCooldown;
 
-                var shouldSend = currentBelow && crossingCondition && cooldownPassed;
+                var shouldSendLow = currentBelow && crossingConditionLow && cooldownPassed;
+                var shouldSendOverflow = currentOverflow && crossingConditionOverflow && cooldownPassed;
+                var shouldSendRefill = currentRefilled && crossingConditionRefill && cooldownPassed;
 
-                if (shouldSend)
+                if (shouldSendLow || shouldSendOverflow || shouldSendRefill)
                 {
                     if (string.IsNullOrWhiteSpace(_telegramBotToken) || string.IsNullOrWhiteSpace(_telegramChatId))
                     {
@@ -132,7 +144,19 @@ namespace AquaAlertApi.Services
                     }
                     else
                     {
-                        var text = $"⚠️ Water level alert for client {clientId}: Water Level = {waterLevel} {message.Unit ?? ""} ( < {_alertLevelThreshold})";
+                        string text;
+                        if (shouldSendLow)
+                        {
+                            text = $"⚠️ Low water alert for client {clientId}: Water Level = {waterLevel} {message.Unit ?? ""} ( < {_alertLevelThreshold})";
+                        }
+                        else if (shouldSendOverflow)
+                        {
+                            text = $"🚨 Overflow alert for client {clientId}: Water Level = {waterLevel} {message.Unit ?? ""} ( > {_overflowThreshold})";
+                        }
+                        else
+                        {
+                            text = $"✅ Tank refilled for client {clientId}: Water Level = {waterLevel} {message.Unit ?? ""} (≥ {_refillThreshold})";
+                        }
                         var payload = new { chat_id = _telegramChatId, text };
                         var json = JsonSerializer.Serialize(payload);
                         using var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -152,8 +176,10 @@ namespace AquaAlertApi.Services
                     }
                 }
 
-                // Always update LastBelow and LastSeenUtc so crossing detection and retention work next time
+                // Always update LastBelow/LastOverflow/LastRefilled and LastSeenUtc so crossing detection and retention work next time
                 state.LastBelow = currentBelow;
+                state.LastOverflow = currentOverflow;
+                state.LastRefilled = currentRefilled;
                 state.LastSeenUtc = nowUtc;
 
                 // Periodic cleanup to avoid unbounded growth of the dictionary. Run once every _cleanupEveryNMessages processed.

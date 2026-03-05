@@ -1,3 +1,4 @@
+version: "2.4"
 services:
   rabbitmq:
     image: rabbitmq:3-management
@@ -11,6 +12,12 @@ services:
     volumes:
       - ./rabbitmq/data:/var/lib/rabbitmq # Persist RabbitMQ data
       - ./rabbitmq/logs:/var/log/rabbitmq # Persist RabbitMQ logs
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     restart: always
     networks:
       - aquaalert_network
@@ -23,10 +30,13 @@ services:
     # dockerfile: Dockerfile
     ports:
       - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
     volumes:
       - ./logs:/logs
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     restart: always
     networks:
       - aquaalert_network
